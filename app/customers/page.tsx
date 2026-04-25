@@ -216,8 +216,14 @@ function CustomersContent() {
       c.phone.includes(search)
   );
 
-  function waMessage(name: string, endDate: string) {
-    return `السلام عليكم يا ${name} 👋\nبنفكرك إن اشتراكك في الجيم هينتهي يوم ${endDate} 💪\nمتنساش تجدد اشتراكك قريب يبطل عشان تكون دايما من أبطال Oscar Gym 🏋️\nمع تحيات إدارة الجيم`;
+  const WA_LINK = "https://chat.whatsapp.com/BU7I9Gpj6zKLtxBqAuaIYM?mode=gi_t";
+
+  function waMessage(c: Customer): string {
+    const expired = c.status === "expired";
+    if (expired) {
+      return `أهلًا يا ${c.name} 💪🏼\nحابين نفكرك ان اشتراكك يا بطل انتهي من يوم ${c.endDate}\nمتنساش تجدد اشتراكك عشان تفضل دايمًا بطل من أبطال ULTRA GYM .. \nمع ألترا چيم - اصنع نسخة أفضل من نفسك 🔥💪🏼\nمع تحيات/ ادارة الچيم\n${WA_LINK}`;
+    }
+    return `أهلًا يا ${c.name} 💪🏼\nحابين نفكرك ان اشتراكك يا بطل هينتهي يوم ${c.endDate}\nمتنساش تجدد اشتراكك عشان تفضل دايمًا بطل من أبطال ULTRA GYM .. \nمع ألترا چيم - اصنع نسخة أفضل من نفسك 🔥💪🏼\nمع تحيات/ ادارة الچيم\n${WA_LINK}`;
   }
 
   const FILTER_LABELS: Record<string, string> = {
@@ -312,7 +318,7 @@ function CustomersContent() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {filtered.map((c) => {
-                    const waLink = `https://wa.me/2${c.phone}?text=${encodeURIComponent(waMessage(c.name, c.endDate))}`;
+                    const waLink = `https://wa.me/2${c.phone}?text=${encodeURIComponent(waMessage(c))}`;
                     return (
                       <tr key={c.id} className="hover:bg-gray-50 transition">
                         <td className="px-4 py-3 font-medium text-gray-900">{c.name}</td>
