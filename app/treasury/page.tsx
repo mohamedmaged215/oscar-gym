@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Navbar from "../components/Navbar";
 import { getCustomers, getPayments, getSales, getExpenses, getInventoryItems } from "../lib/firebaseUtils";
 import { Customer, Payment, Sale, Expense, InventoryItem } from "../lib/types";
@@ -31,16 +31,22 @@ const TYPE_STYLES: Record<TxType, string> = {
   inventory: "bg-orange-100 text-orange-700",
 };
 
+function todayStr() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function monthStartStr() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+}
+
 export default function TreasuryPage() {
   const [loading, setLoading] = useState(true);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [totals, setTotals] = useState({
-    subscriptions: 0,
-    sessions: 0,
-    sales: 0,
-    expenses: 0,
-    inventory: 0,
-  });
+  const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
+  const [dateFrom, setDateFrom] = useState(monthStartStr());
+  const [dateTo, setDateTo] = useState(todayStr());
+
+  const isAllTime = dateFrom === "" && dateTo === "";
 
   useEffect(() => {
     async function load() {
@@ -53,36 +59,24 @@ export default function TreasuryPage() {
       ]);
 
       const customerMap = new Map<string, Customer>(customers.map((c) => [c.id, c]));
-
       const txs: Transaction[] = [];
-      let subscriptions = 0;
-      let sessions = 0;
-      let salesTotal = 0;
-      let expensesTotal = 0;
-      let inventoryTotal = 0;
 
       for (const p of payments as Payment[]) {
         const c = customerMap.get(p.customerId);
         const isSession = c?.subscriptionType === "session";
-        if (isSession) {
-          sessions += p.amount;
-        } else {
-          subscriptions += p.amount;
-        }
         txs.push({
           id: p.id,
-          date: p.date,
-          label: c ? `${c.name}` : "عميل محذوف",
+          date: typeof p.date === "string" ? p.date : "",
+          label: c ? c.name : "عميل محذوف",
           amount: p.amount,
           type: isSession ? "session" : "subscription",
         });
       }
 
       for (const s of sales as Sale[]) {
-        salesTotal += s.sellPrice ?? s.price;
         txs.push({
           id: s.id,
-          date: s.date,
+          date: typeof s.date === "string" ? s.date : "",
           label: s.itemName,
           amount: s.sellPrice ?? s.price,
           type: "sale",
@@ -90,10 +84,9 @@ export default function TreasuryPage() {
       }
 
       for (const e of expenses as Expense[]) {
-        expensesTotal += e.price;
         txs.push({
           id: e.id,
-          date: e.date,
+          date: typeof e.date === "string" ? e.date : "",
           label: e.expenseName,
           amount: e.price,
           type: "expense",
@@ -101,37 +94,54 @@ export default function TreasuryPage() {
       }
 
       for (const item of inventoryItems as InventoryItem[]) {
-        const cost = item.costPrice * item.quantity;
-        inventoryTotal += cost;
         txs.push({
           id: item.id,
           date: "",
           label: item.itemName,
-          amount: cost,
+          amount: item.costPrice * item.quantity,
           type: "inventory",
         });
       }
 
       txs.sort((a, b) => {
+        if (!a.date && !b.date) return 0;
         if (!a.date) return 1;
         if (!b.date) return -1;
         return b.date.localeCompare(a.date);
       });
 
-      setTransactions(txs);
-      setTotals({ subscriptions, sessions, sales: salesTotal, expenses: expensesTotal, inventory: inventoryTotal });
+      setAllTransactions(txs);
       setLoading(false);
     }
 
     load();
   }, []);
 
-  const incoming = totals.subscriptions + totals.sessions + totals.sales;
-  const outgoing = totals.expenses + totals.inventory;
+  const filtered = useMemo(() => {
+    return allTransactions.filter((t) => {
+      if (!t.date) return isAllTime;
+      if (dateFrom && t.date < dateFrom) return false;
+      if (dateTo && t.date > dateTo) return false;
+      return true;
+    });
+  }, [allTransactions, dateFrom, dateTo, isAllTime]);
+
+  const totals = useMemo(() => {
+    return filtered.reduce(
+      (acc, t) => {
+        acc[t.type] += t.amount;
+        return acc;
+      },
+      { subscription: 0, session: 0, sale: 0, expense: 0, inventory: 0 } as Record<TxType, number>
+    );
+  }, [filtered]);
+
+  const incoming = totals.subscription + totals.session + totals.sale;
+  const outgoing = totals.expense + totals.inventory;
   const balance = incoming - outgoing;
 
-  const incomingTxs = transactions.filter((t) => t.type === "subscription" || t.type === "session" || t.type === "sale");
-  const outgoingTxs = transactions.filter((t) => t.type === "expense" || t.type === "inventory");
+  const incomingTxs = filtered.filter((t) => t.type === "subscription" || t.type === "session" || t.type === "sale");
+  const outgoingTxs = filtered.filter((t) => t.type === "expense" || t.type === "inventory");
 
   if (loading) {
     return (
@@ -154,9 +164,53 @@ export default function TreasuryPage() {
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-8">
         <h2 className="text-xl font-bold text-gray-900 mb-6">الخزينة</h2>
 
+        {/* Date range filter */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-4 mb-6 flex flex-col sm:flex-row sm:items-end gap-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-gray-500">من تاريخ</label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-gray-500">إلى تاريخ</label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+            />
+          </div>
+          <div className="flex gap-2 sm:mb-0">
+            <button
+              onClick={() => { setDateFrom(monthStartStr()); setDateTo(todayStr()); }}
+              className={`px-3 py-2 rounded-lg text-sm font-semibold border transition ${
+                !isAllTime && dateFrom === monthStartStr() && dateTo === todayStr()
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              هذا الشهر
+            </button>
+            <button
+              onClick={() => { setDateFrom(""); setDateTo(""); }}
+              className={`px-3 py-2 rounded-lg text-sm font-semibold border transition ${
+                isAllTime
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              كل الوقت
+            </button>
+          </div>
+        </div>
+
         {/* Balance card */}
         <div className={`rounded-2xl border p-6 mb-6 ${balance >= 0 ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
-          <p className="text-sm font-medium text-gray-500 mb-1">الرصيد الحالي</p>
+          <p className="text-sm font-medium text-gray-500 mb-1">الرصيد</p>
           <p className={`text-3xl font-bold ${balance >= 0 ? "text-green-700" : "text-red-600"}`}>
             {balance.toLocaleString()} جنيه
           </p>
@@ -169,19 +223,19 @@ export default function TreasuryPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
           <div className="bg-white rounded-xl border border-gray-200 p-4">
             <p className="text-xs text-gray-500 mb-1">اشتراكات شهرية</p>
-            <p className="text-lg font-bold text-green-700">{totals.subscriptions.toLocaleString()} جنيه</p>
+            <p className="text-lg font-bold text-green-700">{totals.subscription.toLocaleString()} جنيه</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4">
             <p className="text-xs text-gray-500 mb-1">حصص</p>
-            <p className="text-lg font-bold text-blue-700">{totals.sessions.toLocaleString()} جنيه</p>
+            <p className="text-lg font-bold text-blue-700">{totals.session.toLocaleString()} جنيه</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4">
             <p className="text-xs text-gray-500 mb-1">مبيعات</p>
-            <p className="text-lg font-bold text-purple-700">{totals.sales.toLocaleString()} جنيه</p>
+            <p className="text-lg font-bold text-purple-700">{totals.sale.toLocaleString()} جنيه</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4">
             <p className="text-xs text-gray-500 mb-1">مصاريف</p>
-            <p className="text-lg font-bold text-red-600">{totals.expenses.toLocaleString()} جنيه</p>
+            <p className="text-lg font-bold text-red-600">{totals.expense.toLocaleString()} جنيه</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-200 p-4">
             <p className="text-xs text-gray-500 mb-1">تكلفة المشتريات</p>
