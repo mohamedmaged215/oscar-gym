@@ -7,6 +7,7 @@ export interface Customer {
   durationDays: number;
   price: number;
   status: "active" | "expired" | "expiring";
+  subscriptionType?: "monthly" | "session";
 }
 
 export interface Payment {
@@ -20,6 +21,9 @@ export interface Sale {
   id: string;
   itemName: string;
   price: number;
+  costPrice: number;
+  sellPrice: number;
+  profit: number;
   date: string;
 }
 
@@ -28,4 +32,11 @@ export interface Expense {
   expenseName: string;
   price: number;
   date: string;
+}
+
+export interface InventoryItem {
+  id: string;
+  itemName: string;
+  costPrice: number;
+  quantity: number;
 }

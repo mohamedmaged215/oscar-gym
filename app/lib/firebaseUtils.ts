@@ -9,7 +9,7 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { Customer, Payment, Sale, Expense } from "./types";
+import { Customer, Payment, Sale, Expense, InventoryItem } from "./types";
 
 export async function addCustomer(customer: Omit<Customer, "id">): Promise<string> {
   const ref = await addDoc(collection(db, "customers"), customer);
@@ -77,4 +77,32 @@ export async function getExpenses(): Promise<Expense[]> {
 
 export async function deleteExpense(id: string): Promise<void> {
   await deleteDoc(doc(db, "expenses", id));
+}
+
+export async function addInventoryItem(item: Omit<InventoryItem, "id">): Promise<string> {
+  const ref = await addDoc(collection(db, "inventory"), item);
+  return ref.id;
+}
+
+export async function getInventoryItems(): Promise<InventoryItem[]> {
+  const snapshot = await getDocs(collection(db, "inventory"));
+  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as InventoryItem));
+}
+
+export async function updateInventoryItem(id: string, data: Partial<InventoryItem>): Promise<void> {
+  await updateDoc(doc(db, "inventory", id), data);
+}
+
+export async function deleteInventoryItem(id: string): Promise<void> {
+  await deleteDoc(doc(db, "inventory", id));
+}
+
+export async function decrementInventoryQuantity(itemName: string): Promise<void> {
+  const snapshot = await getDocs(
+    query(collection(db, "inventory"), where("itemName", "==", itemName))
+  );
+  for (const d of snapshot.docs) {
+    const qty = (d.data().quantity as number) - 1;
+    if (qty >= 0) await updateDoc(d.ref, { quantity: qty });
+  }
 }

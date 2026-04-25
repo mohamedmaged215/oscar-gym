@@ -321,9 +321,15 @@ function CustomersContent() {
                         <td className="px-4 py-3 text-gray-600">{c.endDate}</td>
                         <td className="px-4 py-3 text-gray-600">{c.price.toLocaleString()} جنيه</td>
                         <td className="px-4 py-3">
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${STATUS_STYLES[c.status]}`}>
-                            {statusLabel(c)}
-                          </span>
+                          {c.subscriptionType === "session" ? (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                              حصة
+                            </span>
+                          ) : (
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${STATUS_STYLES[c.status]}`}>
+                              {statusLabel(c)}
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-start gap-2">

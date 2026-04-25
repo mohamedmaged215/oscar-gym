@@ -22,7 +22,9 @@ export default function Navbar() {
     { href: "/dashboard", label: "الرئيسية" },
     { href: "/customers", label: "العملاء" },
     { href: "/sales", label: "المبيعات" },
+    { href: "/inventory", label: "المشتريات" },
     { href: "/expenses", label: "المصاريف" },
+    { href: "/treasury", label: "الخزينة" },
     { href: "/reports", label: "التقارير" },
   ];
 

@@ -9,6 +9,7 @@ import { calculateEndDate, calculateStatus } from "../../lib/customerUtils";
 export default function NewCustomerPage() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
+  const [subscriptionType, setSubscriptionType] = useState<"monthly" | "session">("monthly");
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -22,29 +23,41 @@ export default function NewCustomerPage() {
   }
 
   const endDate =
-    form.startDate && form.durationDays
+    subscriptionType === "monthly" && form.startDate && form.durationDays
       ? calculateEndDate(form.startDate, Number(form.durationDays))
       : "";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!endDate) return;
+    if (subscriptionType === "monthly" && !endDate) return;
     setSaving(true);
-    const status = calculateStatus(endDate);
-    const customerId = await addCustomer({
-      name: form.name.trim(),
-      phone: form.phone.trim(),
-      startDate: form.startDate,
-      endDate,
-      durationDays: Number(form.durationDays),
-      price: Number(form.price),
-      status,
-    });
-    await addPayment({
-      customerId,
-      amount: Number(form.price),
-      date: form.startDate,
-    });
+    const today = new Date().toISOString().split("T")[0];
+    if (subscriptionType === "session") {
+      const customerId = await addCustomer({
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        startDate: today,
+        endDate: "",
+        durationDays: 0,
+        price: Number(form.price),
+        status: "active",
+        subscriptionType: "session",
+      });
+      await addPayment({ customerId, amount: Number(form.price), date: today });
+    } else {
+      const status = calculateStatus(endDate);
+      const customerId = await addCustomer({
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        startDate: form.startDate,
+        endDate,
+        durationDays: Number(form.durationDays),
+        price: Number(form.price),
+        status,
+        subscriptionType: "monthly",
+      });
+      await addPayment({ customerId, amount: Number(form.price), date: form.startDate });
+    }
     router.push("/customers");
   }
 
@@ -67,6 +80,34 @@ export default function NewCustomerPage() {
 
         <div className="bg-white rounded-2xl border border-gray-200 p-6">
           <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">نوع الاشتراك</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSubscriptionType("monthly")}
+                  className={`flex-1 py-2 rounded-lg text-sm font-semibold border transition ${
+                    subscriptionType === "monthly"
+                      ? "bg-blue-600 text-white border-blue-600"
+                      : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  شهري
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSubscriptionType("session")}
+                  className={`flex-1 py-2 rounded-lg text-sm font-semibold border transition ${
+                    subscriptionType === "session"
+                      ? "bg-blue-600 text-white border-blue-600"
+                      : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  حصة
+                </button>
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">الاسم</label>
               <input
@@ -91,37 +132,41 @@ export default function NewCustomerPage() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">تاريخ البداية</label>
-              <input
-                required
-                type="date"
-                value={form.startDate}
-                onChange={(e) => set("startDate", e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-              />
-            </div>
+            {subscriptionType === "monthly" && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">تاريخ البداية</label>
+                  <input
+                    required
+                    type="date"
+                    value={form.startDate}
+                    onChange={(e) => set("startDate", e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  />
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">المدة (أيام)</label>
-              <input
-                required
-                type="number"
-                min="1"
-                value={form.durationDays}
-                onChange={(e) => set("durationDays", e.target.value)}
-                placeholder="30"
-                className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-              />
-            </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">المدة (أيام)</label>
+                  <input
+                    required
+                    type="number"
+                    min="1"
+                    value={form.durationDays}
+                    onChange={(e) => set("durationDays", e.target.value)}
+                    placeholder="30"
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  />
+                </div>
 
-            {endDate && (
-              <div className="flex items-center gap-2 px-3.5 py-2.5 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
-                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                تاريخ الانتهاء: <strong>{endDate}</strong>
-              </div>
+                {endDate && (
+                  <div className="flex items-center gap-2 px-3.5 py-2.5 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    تاريخ الانتهاء: <strong>{endDate}</strong>
+                  </div>
+                )}
+              </>
             )}
 
             <div>

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
-import { addSale, getSales, deleteSale } from "../lib/firebaseUtils";
-import { Sale } from "../lib/types";
+import { addSale, getSales, deleteSale, getInventoryItems, decrementInventoryQuantity } from "../lib/firebaseUtils";
+import { Sale, InventoryItem } from "../lib/types";
 
 function DeleteModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
   return (
@@ -23,28 +23,54 @@ function DeleteModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel:
 
 export default function SalesPage() {
   const [sales, setSales] = useState<Sale[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
-  const [form, setForm] = useState({ itemName: "", price: "" });
+  const [form, setForm] = useState({ itemName: "", costPrice: "", sellPrice: "" });
+
+  const profit =
+    form.costPrice && form.sellPrice
+      ? Number(form.sellPrice) - Number(form.costPrice)
+      : null;
 
   async function load() {
     setLoading(true);
-    const data = await getSales();
-    data.sort((a, b) => b.date.localeCompare(a.date));
-    setSales(data);
+    const [salesData, invData] = await Promise.all([getSales(), getInventoryItems()]);
+    salesData.sort((a, b) => b.date.localeCompare(a.date));
+    setSales(salesData);
+    setInventory(invData);
     setLoading(false);
   }
 
   useEffect(() => { load(); }, []);
 
+  function handleItemNameChange(name: string) {
+    const match = inventory.find((i) => i.itemName === name);
+    setForm((f) => ({
+      ...f,
+      itemName: name,
+      costPrice: match ? String(match.costPrice) : f.costPrice,
+    }));
+  }
+
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.itemName.trim() || !form.price) return;
+    if (!form.itemName.trim() || !form.costPrice || !form.sellPrice) return;
     setSaving(true);
     const today = new Date().toISOString().split("T")[0];
-    await addSale({ itemName: form.itemName.trim(), price: Number(form.price), date: today });
-    setForm({ itemName: "", price: "" });
+    const cost = Number(form.costPrice);
+    const sell = Number(form.sellPrice);
+    await addSale({
+      itemName: form.itemName.trim(),
+      price: sell,
+      costPrice: cost,
+      sellPrice: sell,
+      profit: sell - cost,
+      date: today,
+    });
+    await decrementInventoryQuantity(form.itemName.trim());
+    setForm({ itemName: "", costPrice: "", sellPrice: "" });
     await load();
     setSaving(false);
   }
@@ -56,7 +82,8 @@ export default function SalesPage() {
     setDeleteTarget(null);
   }
 
-  const total = sales.reduce((sum, s) => sum + s.price, 0);
+  const totalSell = sales.reduce((sum, s) => sum + (s.sellPrice ?? s.price), 0);
+  const totalProfit = sales.reduce((sum, s) => sum + (s.profit ?? 0), 0);
 
   return (
     <div className="min-h-full">
@@ -70,31 +97,55 @@ export default function SalesPage() {
         <h2 className="text-xl font-bold text-gray-900 mb-6">المبيعات</h2>
 
         <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-6">
-          <form onSubmit={handleAdd} className="flex flex-col sm:flex-row gap-3">
-            <input
-              required
-              type="text"
-              placeholder="اسم الصنف"
-              value={form.itemName}
-              onChange={(e) => setForm((f) => ({ ...f, itemName: e.target.value }))}
-              className="flex-1 px-3.5 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-            />
-            <input
-              required
-              type="number"
-              min="0"
-              placeholder="السعر"
-              value={form.price}
-              onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-              className="w-full sm:w-36 px-3.5 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-            />
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-5 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition"
-            >
-              {saving ? "…" : "إضافة"}
-            </button>
+          <form onSubmit={handleAdd} className="flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                required
+                type="text"
+                placeholder="اسم الصنف"
+                value={form.itemName}
+                list="inventory-items"
+                onChange={(e) => handleItemNameChange(e.target.value)}
+                className="flex-1 px-3.5 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              />
+              <datalist id="inventory-items">
+                {inventory.map((i) => <option key={i.id} value={i.itemName} />)}
+              </datalist>
+              <input
+                required
+                type="number"
+                min="0"
+                placeholder="سعر التكلفة"
+                value={form.costPrice}
+                onChange={(e) => setForm((f) => ({ ...f, costPrice: e.target.value }))}
+                className="w-full sm:w-36 px-3.5 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              />
+              <input
+                required
+                type="number"
+                min="0"
+                placeholder="سعر البيع"
+                value={form.sellPrice}
+                onChange={(e) => setForm((f) => ({ ...f, sellPrice: e.target.value }))}
+                className="w-full sm:w-36 px-3.5 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              {profit !== null ? (
+                <span className={`text-sm font-semibold ${profit >= 0 ? "text-green-600" : "text-red-500"}`}>
+                  الفائض: {profit.toLocaleString()} جنيه
+                </span>
+              ) : (
+                <span />
+              )}
+              <button
+                type="submit"
+                disabled={saving}
+                className="px-5 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition"
+              >
+                {saving ? "…" : "إضافة"}
+              </button>
+            </div>
           </form>
         </div>
 
@@ -110,7 +161,8 @@ export default function SalesPage() {
               <thead>
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="text-right px-4 py-3 font-semibold text-gray-600">الصنف</th>
-                  <th className="text-right px-4 py-3 font-semibold text-gray-600">السعر</th>
+                  <th className="text-right px-4 py-3 font-semibold text-gray-600">سعر البيع</th>
+                  <th className="text-right px-4 py-3 font-semibold text-gray-600">الفائض</th>
                   <th className="text-right px-4 py-3 font-semibold text-gray-600">التاريخ</th>
                   <th className="px-4 py-3" />
                 </tr>
@@ -119,7 +171,16 @@ export default function SalesPage() {
                 {sales.map((s) => (
                   <tr key={s.id} className="hover:bg-gray-50 transition">
                     <td className="px-4 py-3 font-medium text-gray-900">{s.itemName}</td>
-                    <td className="px-4 py-3 text-gray-600">{s.price.toLocaleString()} جنيه</td>
+                    <td className="px-4 py-3 text-gray-600">{(s.sellPrice ?? s.price).toLocaleString()} جنيه</td>
+                    <td className="px-4 py-3">
+                      {s.profit != null ? (
+                        <span className={s.profit >= 0 ? "text-green-600 font-medium" : "text-red-500 font-medium"}>
+                          {s.profit.toLocaleString()} جنيه
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-gray-600">{s.date}</td>
                     <td className="px-4 py-3 text-left">
                       <button
@@ -140,9 +201,12 @@ export default function SalesPage() {
         </div>
 
         {!loading && sales.length > 0 && (
-          <div className="mt-4 flex justify-end">
+          <div className="mt-4 flex justify-end gap-6">
             <span className="text-sm font-semibold text-gray-700">
-              إجمالي المبيعات: <span className="text-blue-700">{total.toLocaleString()} جنيه</span>
+              إجمالي المبيعات: <span className="text-blue-700">{totalSell.toLocaleString()} جنيه</span>
+            </span>
+            <span className="text-sm font-semibold text-gray-700">
+              إجمالي الفائض: <span className="text-green-600">{totalProfit.toLocaleString()} جنيه</span>
             </span>
           </div>
         )}
