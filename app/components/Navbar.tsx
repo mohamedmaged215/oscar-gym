@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { auth } from "../lib/firebase";
 
-const GYM_CONFIG = { name: "Hulk Gym" };
+const GYM_CONFIG = { name: "Oscar Gym" };
 
 export default function Navbar() {
   const pathname = usePathname();

@@ -217,7 +217,7 @@ function CustomersContent() {
   );
 
   function waMessage(name: string, endDate: string) {
-    return `السلام عليكم يا ${name} 👋\nبنفكرك إن اشتراكك في الجيم هينتهي يوم ${endDate} 💪\nمتنساش تجدد اشتراكك قريب يبطل عشان تكون دايما من أبطال Hulk Gym 🏋️\nمع تحيات إدارة الجيم`;
+    return `السلام عليكم يا ${name} 👋\nبنفكرك إن اشتراكك في الجيم هينتهي يوم ${endDate} 💪\nمتنساش تجدد اشتراكك قريب يبطل عشان تكون دايما من أبطال Oscar Gym 🏋️\nمع تحيات إدارة الجيم`;
   }
 
   const FILTER_LABELS: Record<string, string> = {
