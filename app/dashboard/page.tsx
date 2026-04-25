@@ -157,7 +157,7 @@ export default function DashboardPage() {
 
     const salesRevenue = sales
       .filter((s) => { const d = normalizeDate(s.date); return d >= monthStart && d <= monthEnd; })
-      .reduce((sum, s) => sum + s.price, 0);
+      .reduce((sum, s) => sum + (s.profit ?? 0), 0);
 
     const totalExpenses = expenses
       .filter((e) => { const d = normalizeDate(e.date); return d >= monthStart && d <= monthEnd; })
@@ -246,7 +246,7 @@ export default function DashboardPage() {
               }
             />
             <StatCard
-              label="إيرادات المبيعات (جنيه)"
+              label="فائض المبيعات (جنيه)"
               value={stats.salesRevenue.toLocaleString()}
               color="green"
               href="/sales"
