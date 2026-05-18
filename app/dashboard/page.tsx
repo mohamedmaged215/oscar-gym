@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { getCustomers, getPayments, getSales, getExpenses } from "../lib/firebaseUtils";
+import { calculateStatus } from "../lib/customerUtils";
 import { Customer, Payment, Sale, Expense } from "../lib/types";
 import Navbar from "../components/Navbar";
 
@@ -150,15 +151,13 @@ export default function DashboardPage() {
     const expiringSoon = customers.filter(
       (c) =>
         c.subscriptionType === "monthly" &&
-        c.status !== "expired" &&
-        c.endDate >= monthStart &&
-        c.endDate <= monthEnd
+        calculateStatus(c.endDate, c.subscriptionType) === "expiring"
     ).length;
 
     const expiredThisMonth = customers.filter(
       (c) =>
         c.subscriptionType === "monthly" &&
-        c.status === "expired"
+        calculateStatus(c.endDate, c.subscriptionType) === "expired"
     ).length;
 
     const salesRevenue = sales
