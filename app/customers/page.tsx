@@ -207,20 +207,10 @@ function CustomersContent() {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
 
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const in7Days = new Date(today); in7Days.setDate(today.getDate() + 7);
-  const todayStr   = today.toISOString().split("T")[0];
-  const in7DaysStr = in7Days.toISOString().split("T")[0];
-
   const afterUrlFilter = customers.filter((c) => {
     if (urlFilter === "active")   return c.status === "active" || c.status === "expiring";
     if (urlFilter === "expiring") {
-      return (
-        c.subscriptionType === "monthly" &&
-        c.status !== "expired" &&
-        c.endDate > todayStr &&
-        c.endDate <= in7DaysStr
-      );
+      return c.subscriptionType === "monthly" && c.status === "expiring";
     }
     if (urlFilter === "expired") {
       return c.subscriptionType === "monthly" && c.status === "expired";
