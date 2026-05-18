@@ -216,14 +216,11 @@ function CustomersContent() {
       c.phone.includes(search)
   );
 
-  const WA_LINK = "https://chat.whatsapp.com/BU7I9Gpj6zKLtxBqAuaIYM?mode=gi_t";
-
   function waMessage(c: Customer): string {
-    const expired = c.status === "expired";
-    if (expired) {
-      return `أهلًا يا ${c.name} 💪🏼\nحابين نفكرك ان اشتراكك يا بطل انتهي من يوم ${c.endDate}\nمتنساش تجدد اشتراكك عشان تفضل دايمًا بطل من أبطال ULTRA GYM .. \nمع ألترا چيم - اصنع نسخة أفضل من نفسك 🔥💪🏼\nمع تحيات/ ادارة الچيم\n${WA_LINK}`;
+    if (c.status === "expired") {
+      return `السلام عليكم يا ${c.name} 👋\nبنفكرك إن اشتراكك في الجيم انتهي من يوم ${c.endDate} 💪\nمتنساش تجدد اشتراكك عشان تكون دايما من أبطال Hulk Gym 🏋️\nمع تحيات إدارة الجيم`;
     }
-    return `أهلًا يا ${c.name} 💪🏼\nحابين نفكرك ان اشتراكك يا بطل هينتهي يوم ${c.endDate}\nمتنساش تجدد اشتراكك عشان تفضل دايمًا بطل من أبطال ULTRA GYM .. \nمع ألترا چيم - اصنع نسخة أفضل من نفسك 🔥💪🏼\nمع تحيات/ ادارة الچيم\n${WA_LINK}`;
+    return `السلام عليكم يا ${c.name} 👋\nبنفكرك إن اشتراكك في الجيم هينتهي يوم ${c.endDate} 💪\nمتنساش تجدد اشتراكك قريب يبطل عشان تكون دايما من أبطال Hulk Gym 🏋️\nمع تحيات إدارة الجيم`;
   }
 
   const FILTER_LABELS: Record<string, string> = {
