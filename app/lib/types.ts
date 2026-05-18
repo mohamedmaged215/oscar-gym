@@ -6,7 +6,7 @@ export interface Customer {
   endDate: string;
   durationDays: number;
   price: number;
-  status: "active" | "expired" | "expiring";
+  status: "active" | "expired" | "expiring" | "session";
   subscriptionType?: "monthly" | "session";
 }
 

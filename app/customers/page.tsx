@@ -12,19 +12,24 @@ const STATUS_STYLES = {
   active:   "bg-green-100 text-green-700",
   expiring: "bg-orange-100 text-orange-700",
   expired:  "bg-red-100 text-red-700",
+  session:  "bg-blue-100 text-blue-700",
 };
 
-function statusLabel(c: Customer): string {
+function statusLabel(c: Customer): { label: string; style: string } {
+  if (c.subscriptionType === "session") {
+    return { label: "حصة", style: STATUS_STYLES.session };
+  }
+
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const end = new Date(c.endDate); end.setHours(0, 0, 0, 0);
   const diff = Math.ceil((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
-  if (diff < 0)   return "منتهي";
-  if (diff === 0) return "ينتهي اليوم";
-  if (diff === 1) return "باقي يوم واحد";
-  if (diff === 2) return "باقي 2 يوم";
-  if (diff === 3) return "باقي 3 أيام";
-  return "نشط";
+  if (diff < 0)   return { label: "منتهي",          style: STATUS_STYLES.expired  };
+  if (diff === 0) return { label: "ينتهي اليوم",    style: STATUS_STYLES.expiring };
+  if (diff === 1) return { label: "باقي يوم واحد",  style: STATUS_STYLES.expiring };
+  if (diff === 2) return { label: "باقي 2 يوم",     style: STATUS_STYLES.expiring };
+  if (diff === 3) return { label: "باقي 3 أيام",    style: STATUS_STYLES.expiring };
+  return { label: "نشط", style: STATUS_STYLES.active };
 }
 
 function DeleteModal({ name, onConfirm, onCancel }: { name: string; onConfirm: () => void; onCancel: () => void }) {
@@ -202,11 +207,25 @@ function CustomersContent() {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
 
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const in7Days = new Date(today); in7Days.setDate(today.getDate() + 7);
+  const todayStr   = today.toISOString().split("T")[0];
+  const in7DaysStr = in7Days.toISOString().split("T")[0];
+
   const afterUrlFilter = customers.filter((c) => {
     if (urlFilter === "active")   return c.status === "active" || c.status === "expiring";
-    if (urlFilter === "expiring") return c.status === "expiring";
-    if (urlFilter === "expired")  return c.status === "expired";
-    if (urlFilter === "new")      return c.startDate >= monthStart;
+    if (urlFilter === "expiring") {
+      return (
+        c.subscriptionType === "monthly" &&
+        c.status !== "expired" &&
+        c.endDate > todayStr &&
+        c.endDate <= in7DaysStr
+      );
+    }
+    if (urlFilter === "expired") {
+      return c.subscriptionType === "monthly" && c.status === "expired";
+    }
+    if (urlFilter === "new") return c.startDate >= monthStart;
     return true;
   });
 
@@ -256,7 +275,7 @@ function CustomersContent() {
         </div>
       )}
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+      <main className="w-full px-4 sm:px-6 py-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <h2 className="text-xl font-bold text-gray-900">العملاء</h2>
@@ -324,15 +343,14 @@ function CustomersContent() {
                         <td className="px-4 py-3 text-gray-600">{c.endDate}</td>
                         <td className="px-4 py-3 text-gray-600">{c.price.toLocaleString()} جنيه</td>
                         <td className="px-4 py-3">
-                          {c.subscriptionType === "session" ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
-                              حصة
-                            </span>
-                          ) : (
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${STATUS_STYLES[c.status]}`}>
-                              {statusLabel(c)}
-                            </span>
-                          )}
+                          {(() => {
+                            const { label, style } = statusLabel(c);
+                            return (
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${style}`}>
+                                {label}
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center justify-start gap-2">

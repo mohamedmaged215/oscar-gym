@@ -148,11 +148,17 @@ export default function DashboardPage() {
     ).length;
 
     const expiringSoon = customers.filter(
-      (c) => c.endDate >= monthStart && c.endDate <= monthEnd
+      (c) =>
+        c.subscriptionType === "monthly" &&
+        c.status !== "expired" &&
+        c.endDate >= monthStart &&
+        c.endDate <= monthEnd
     ).length;
 
     const expiredThisMonth = customers.filter(
-      (c) => c.endDate >= monthStart && c.endDate <= monthEnd && c.endDate < new Date().toISOString().split("T")[0]
+      (c) =>
+        c.subscriptionType === "monthly" &&
+        c.status === "expired"
     ).length;
 
     const salesRevenue = sales
