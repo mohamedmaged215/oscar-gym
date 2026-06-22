@@ -43,15 +43,15 @@ function SummaryCard({
   label, value, color,
 }: { label: string; value: string; color: "blue" | "green" | "red" | "yellow" }) {
   const styles = {
-    blue:   "bg-blue-50 text-blue-700",
-    green:  "bg-green-50 text-green-700",
-    red:    "bg-red-50 text-red-700",
-    yellow: "bg-yellow-50 text-yellow-700",
+    blue:   "bg-blue-50/60 border-blue-150 text-blue-700",
+    green:  "bg-green-50/60 border-green-150 text-green-700",
+    red:    "bg-red-50/60 border-red-150 text-red-700",
+    yellow: "bg-yellow-50/60 border-yellow-150 text-yellow-700",
   }[color];
   return (
-    <div className={`${styles} rounded-2xl p-4 sm:p-5`}>
-      <p className="text-xs sm:text-sm font-medium opacity-75 mb-1">{label}</p>
-      <p className="text-lg sm:text-xl font-bold">{value}</p>
+    <div className={`border ${styles} rounded-2xl p-5 shadow-sm`}>
+      <p className="text-xs font-bold opacity-75 mb-1">{label}</p>
+      <p className="text-xl font-black">{value}</p>
     </div>
   );
 }
@@ -89,7 +89,7 @@ export default function ReportsPage() {
       if (d) seen.add(toPrefix(d));
     });
     return Array.from(seen).sort();
-  }, [payments, sales, expenses]);
+  }, [payments, sales, expenses, currentPrefix]);
 
   // Derive from/to from quick range
   const { fromPrefix, toPrefix: toP } = useMemo(() => {
@@ -156,10 +156,10 @@ export default function ReportsPage() {
   ];
 
   return (
-    <div className="min-h-full">
+    <div className="min-h-full bg-gray-50/50 pb-24 sm:pb-8">
       <Navbar />
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-        <h2 className="text-xl font-bold text-gray-900 mb-6">التقارير</h2>
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <h2 className="text-xl sm:text-2xl font-black text-gray-900 mb-6">التقارير</h2>
 
         {/* Quick range buttons */}
         <div className="flex flex-wrap gap-2 mb-4">
@@ -167,9 +167,9 @@ export default function ReportsPage() {
             <button
               key={key}
               onClick={() => setQuickRange(key)}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+              className={`flex-1 sm:flex-initial text-center px-4 py-2.5 rounded-xl text-sm font-bold transition duration-150 active:scale-95 ${
                 quickRange === key
-                  ? "bg-blue-600 text-white"
+                  ? "bg-blue-600 text-white shadow-md shadow-blue-200"
                   : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
               }`}
             >
@@ -178,9 +178,9 @@ export default function ReportsPage() {
           ))}
           <button
             onClick={() => setQuickRange("custom")}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+            className={`flex-1 sm:flex-initial text-center px-4 py-2.5 rounded-xl text-sm font-bold transition duration-150 active:scale-95 ${
               quickRange === "custom"
-                ? "bg-blue-600 text-white"
+                ? "bg-blue-600 text-white shadow-md shadow-blue-200"
                 : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
             }`}
           >
@@ -190,19 +190,19 @@ export default function ReportsPage() {
 
         {/* Custom range dropdowns */}
         {quickRange === "custom" && (
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center gap-3 mb-6 bg-white p-4 border border-gray-200 rounded-2xl shadow-sm">
             <select
               value={customFrom}
               onChange={(e) => setCustomFrom(e.target.value)}
-              className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              className="flex-1 px-3 py-2 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 transition cursor-pointer"
             >
               {monthOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
-            <span className="text-gray-400 text-sm">إلى</span>
+            <span className="text-gray-400 text-sm font-bold shrink-0">إلى</span>
             <select
               value={customTo}
               onChange={(e) => setCustomTo(e.target.value)}
-              className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              className="flex-1 px-3 py-2 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 transition cursor-pointer"
             >
               {monthOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
@@ -211,15 +211,15 @@ export default function ReportsPage() {
 
         {loading ? (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {[...Array(4)].map((_, i) => <div key={i} className="h-20 bg-gray-100 rounded-2xl animate-pulse" />)}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[...Array(4)].map((_, i) => <div key={i} className="h-20 bg-gray-100 rounded-2xl animate-pulse border border-gray-150" />)}
             </div>
-            <div className="h-64 bg-gray-100 rounded-2xl animate-pulse" />
+            <div className="h-64 bg-gray-100 rounded-2xl animate-pulse border border-gray-150" />
           </div>
         ) : (
           <>
             {/* Summary cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <SummaryCard
                 label="إجمالي الإيرادات"
                 value={`${totals.total.toLocaleString()} جنيه`}
@@ -237,75 +237,148 @@ export default function ReportsPage() {
               />
               <SummaryCard
                 label="أفضل شهر"
-                value={bestRow ? `${monthLabel(bestRow.prefix)} · ${bestRow.total.toLocaleString()}` : "—"}
+                value={bestRow ? `${monthLabel(bestRow.prefix)} · ${bestRow.total.toLocaleString()} جنيه` : "—"}
                 color="yellow"
               />
             </div>
 
-            {/* Comparison table */}
+            {/* Comparison view */}
             {rows.length === 0 ? (
-              <p className="text-center text-gray-400 text-sm py-16">لا توجد بيانات للفترة المحددة.</p>
+              <p className="text-center text-gray-400 text-sm py-16 bg-white rounded-2xl border border-gray-200">لا توجد بيانات للفترة المحددة.</p>
             ) : (
-              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                <div className="px-5 py-4 border-b border-gray-100">
-                  <h3 className="font-semibold text-gray-800 text-sm">مقارنة الإيرادات الشهرية</h3>
+              <div className="space-y-4">
+                <h3 className="font-bold text-gray-800 text-base mb-2 px-1">مقارنة الإيرادات الشهرية</h3>
+                
+                {/* Mobile view cards (sm:hidden) */}
+                <div className="sm:hidden space-y-3">
+                  {rows.map((row) => {
+                    const isBest = row === bestRow;
+                    const barWidth = Math.round((row.total / maxTotal) * 100);
+                    return (
+                      <div
+                        key={row.prefix}
+                        className={`border rounded-2xl p-4 bg-white transition-all shadow-sm ${
+                          isBest ? "border-yellow-200 bg-yellow-50/20" : "border-gray-150"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-1.5">
+                            {isBest && <span title="أفضل شهر" className="text-base">🏆</span>}
+                            <span className="font-bold text-gray-900 text-sm">{monthLabel(row.prefix)}</span>
+                          </div>
+                          <span className={`text-xs font-black ${isBest ? "text-yellow-600" : "text-blue-600"}`}>
+                            {barWidth}%
+                          </span>
+                        </div>
+
+                        {/* Progress bar */}
+                        <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden mb-3">
+                          <div
+                            className={`h-full rounded-full transition-all duration-300 ${isBest ? "bg-yellow-400" : "bg-blue-500"}`}
+                            style={{ width: `${barWidth}%` }}
+                          />
+                        </div>
+
+                        {/* Metrics grid */}
+                        <div className="grid grid-cols-2 gap-3 text-xs bg-gray-50/50 rounded-xl p-3 border border-gray-100">
+                          <div>
+                            <p className="text-gray-400 font-bold mb-0.5">إيراد الاشتراكات</p>
+                            <p className="text-gray-800 font-black">{row.subscriptions.toLocaleString()} جنيه</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-400 font-bold mb-0.5">إيراد المبيعات</p>
+                            <p className="text-gray-800 font-black">{row.sales.toLocaleString()} جنيه</p>
+                          </div>
+                          <div className="col-span-2 pt-1.5 border-t border-gray-200/60 flex justify-between font-bold text-gray-500">
+                            <span>المصاريف: <strong className="text-red-500">{row.expenses.toLocaleString()} جنيه</strong></span>
+                            <span>الصافي: <strong className={row.net >= 0 ? "text-green-700" : "text-red-700"}>{row.net.toLocaleString()} جنيه</strong></span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Mobile total card */}
+                  <div className="border border-gray-200 rounded-2xl p-4 bg-gray-50 text-xs font-bold text-gray-700 shadow-sm space-y-2">
+                    <p className="text-sm font-black text-gray-800 border-b border-gray-200 pb-2 mb-2">الإجمالي الكلي للفترة</p>
+                    <div className="flex justify-between">
+                      <span>إجمالي الاشتراكات:</span>
+                      <span className="font-black text-gray-900">{totals.subscriptions.toLocaleString()} جنيه</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>إجمالي المبيعات:</span>
+                      <span className="font-black text-gray-900">{totals.sales.toLocaleString()} جنيه</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>إجمالي المصاريف:</span>
+                      <span className="font-black text-red-500">{totals.expenses.toLocaleString()} جنيه</span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t border-gray-200">
+                      <span>صافي الأرباح:</span>
+                      <span className={`font-black ${totals.net >= 0 ? "text-green-600" : "text-red-600"}`}>{totals.net.toLocaleString()} جنيه</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full text-sm">
-                    <thead>
-                      <tr className="bg-gray-50 border-b border-gray-200 text-right">
-                        <th className="px-4 py-3 font-semibold text-gray-600">الشهر</th>
-                        <th className="px-4 py-3 font-semibold text-gray-600">إيرادات الاشتراكات</th>
-                        <th className="px-4 py-3 font-semibold text-gray-600">إيرادات المبيعات</th>
-                        <th className="px-4 py-3 font-semibold text-gray-600">المصاريف</th>
-                        <th className="px-4 py-3 font-semibold text-gray-600">صافي الربح</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {rows.map((row) => {
-                        const isBest = row === bestRow;
-                        const barWidth = Math.round((row.total / maxTotal) * 100);
-                        return (
-                          <tr
-                            key={row.prefix}
-                            className={isBest ? "bg-yellow-50" : "hover:bg-gray-50 transition"}
-                          >
-                            <td className="px-4 py-3 font-medium text-gray-900">
-                              <div className="flex items-center gap-2">
-                                {isBest && <span title="أفضل شهر">🏆</span>}
-                                <div>
-                                  <div>{monthLabel(row.prefix)}</div>
-                                  <div className="mt-1 h-1.5 w-24 bg-gray-200 rounded-full overflow-hidden">
-                                    <div
-                                      className={`h-full rounded-full ${isBest ? "bg-yellow-400" : "bg-blue-400"}`}
-                                      style={{ width: `${barWidth}%` }}
-                                    />
+
+                {/* Desktop View Table (hidden sm:block) */}
+                <div className="hidden sm:block bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead>
+                        <tr className="bg-gray-50 border-b border-gray-200 text-right">
+                          <th className="px-5 py-4.5 font-bold text-gray-600">الشهر</th>
+                          <th className="px-5 py-4.5 font-bold text-gray-600">إيرادات الاشتراكات</th>
+                          <th className="px-5 py-4.5 font-bold text-gray-600">إيرادات المبيعات</th>
+                          <th className="px-5 py-4.5 font-bold text-gray-600">المصاريف</th>
+                          <th className="px-5 py-4.5 font-bold text-gray-600">صافي الربح</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {rows.map((row) => {
+                          const isBest = row === bestRow;
+                          const barWidth = Math.round((row.total / maxTotal) * 100);
+                          return (
+                            <tr
+                              key={row.prefix}
+                              className={isBest ? "bg-yellow-50/30" : "hover:bg-gray-50 transition"}
+                            >
+                              <td className="px-5 py-4 font-semibold text-gray-900">
+                                <div className="flex items-center gap-3">
+                                  {isBest && <span title="أفضل شهر" className="text-base">🏆</span>}
+                                  <div>
+                                    <div className="font-bold">{monthLabel(row.prefix)}</div>
+                                    <div className="mt-1.5 h-1.5 w-32 bg-gray-150 rounded-full overflow-hidden">
+                                      <div
+                                        className={`h-full rounded-full transition-all duration-300 ${isBest ? "bg-yellow-400" : "bg-blue-500"}`}
+                                        style={{ width: `${barWidth}%` }}
+                                      />
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-gray-700">{row.subscriptions.toLocaleString()} جنيه</td>
-                            <td className="px-4 py-3 text-gray-700">{row.sales.toLocaleString()} جنيه</td>
-                            <td className="px-4 py-3 text-red-600">{row.expenses.toLocaleString()} جنيه</td>
-                            <td className={`px-4 py-3 font-semibold ${row.net >= 0 ? "text-green-700" : "text-red-600"}`}>
-                              {row.net.toLocaleString()} جنيه
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                    <tfoot>
-                      <tr className="bg-gray-50 border-t-2 border-gray-200 font-semibold text-gray-800">
-                        <td className="px-4 py-3">الإجمالي</td>
-                        <td className="px-4 py-3">{totals.subscriptions.toLocaleString()} جنيه</td>
-                        <td className="px-4 py-3">{totals.sales.toLocaleString()} جنيه</td>
-                        <td className="px-4 py-3 text-red-600">{totals.expenses.toLocaleString()} جنيه</td>
-                        <td className={`px-4 py-3 ${totals.net >= 0 ? "text-green-700" : "text-red-600"}`}>
-                          {totals.net.toLocaleString()} جنيه
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
+                              </td>
+                              <td className="px-5 py-4 text-gray-700 font-bold">{row.subscriptions.toLocaleString()} جنيه</td>
+                              <td className="px-5 py-4 text-gray-700 font-bold">{row.sales.toLocaleString()} جنيه</td>
+                              <td className="px-5 py-4 text-red-600 font-semibold">{row.expenses.toLocaleString()} جنيه</td>
+                              <td className={`px-5 py-4 font-bold ${row.net >= 0 ? "text-green-700" : "text-red-700"}`}>
+                                {row.net.toLocaleString()} جنيه
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                      <tfoot>
+                        <tr className="bg-gray-50 border-t-2 border-gray-200 font-black text-gray-800">
+                          <td className="px-5 py-4">الإجمالي</td>
+                          <td className="px-5 py-4">{totals.subscriptions.toLocaleString()} جنيه</td>
+                          <td className="px-5 py-4">{totals.sales.toLocaleString()} جنيه</td>
+                          <td className="px-5 py-4 text-red-600">{totals.expenses.toLocaleString()} جنيه</td>
+                          <td className={`px-5 py-4 ${totals.net >= 0 ? "text-green-600" : "text-red-600"}`}>
+                            {totals.net.toLocaleString()} جنيه
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
                 </div>
               </div>
             )}

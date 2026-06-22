@@ -6,8 +6,8 @@ export interface Customer {
   endDate: string;
   durationDays: number;
   price: number;
-  status: "active" | "expired" | "expiring" | "session";
-  subscriptionType?: "monthly" | "session";
+  status: "active" | "expired" | "expiring";
+  subscriptionType?: "monthly";
 }
 
 export interface Payment {
