@@ -7,9 +7,7 @@ export function calculateEndDate(startDate: string, durationDays: number): strin
 export function calculateStatus(
   endDate: string,
   subscriptionType?: string
-): "active" | "expiring" | "expired" | "session" {
-  if (subscriptionType === "session") return "session";
-
+): "active" | "expiring" | "expired" {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
   const end = new Date(endDate);
