@@ -5,7 +5,7 @@ import Navbar from "../components/Navbar";
 import { getCustomers, getPayments, getSales, getExpenses, getInventoryItems } from "../lib/firebaseUtils";
 import { Customer, Payment, Sale, Expense, InventoryItem } from "../lib/types";
 
-type TxType = "subscription" | "sale" | "expense" | "inventory";
+type TxType = "subscription" | "session" | "sale" | "expense" | "inventory";
 
 interface Transaction {
   id: string;
@@ -16,7 +16,8 @@ interface Transaction {
 }
 
 const TYPE_LABELS: Record<TxType, string> = {
-  subscription: "اشتراك",
+  subscription: "اشتراك شهري",
+  session: "حصة",
   sale: "مبيعات",
   expense: "مصروف",
   inventory: "مشتريات",
@@ -24,6 +25,7 @@ const TYPE_LABELS: Record<TxType, string> = {
 
 const TYPE_STYLES: Record<TxType, string> = {
   subscription: "bg-green-50 text-green-700 border-green-200",
+  session: "bg-blue-50 text-blue-700 border-blue-200",
   sale: "bg-purple-50 text-purple-700 border-purple-200",
   expense: "bg-red-50 text-red-700 border-red-200",
   inventory: "bg-orange-50 text-orange-700 border-orange-200",
@@ -61,12 +63,13 @@ export default function TreasuryPage() {
 
       for (const p of payments as Payment[]) {
         const c = customerMap.get(p.customerId);
+        const isSession = c?.subscriptionType === "session" || c?.status === "session";
         txs.push({
           id: p.id,
           date: typeof p.date === "string" ? p.date : "",
           label: c ? c.name : "عميل محذوف",
           amount: p.amount,
-          type: "subscription",
+          type: isSession ? "session" : "subscription",
         });
       }
 
@@ -129,15 +132,15 @@ export default function TreasuryPage() {
         acc[t.type] += t.amount;
         return acc;
       },
-      { subscription: 0, sale: 0, expense: 0, inventory: 0 } as Record<TxType, number>
+      { subscription: 0, session: 0, sale: 0, expense: 0, inventory: 0 } as Record<TxType, number>
     );
   }, [filtered]);
 
-  const incoming = totals.subscription + totals.sale;
+  const incoming = totals.subscription + totals.session + totals.sale;
   const outgoing = totals.expense + totals.inventory;
   const balance = incoming - outgoing;
 
-  const incomingTxs = filtered.filter((t) => t.type === "subscription" || t.type === "sale");
+  const incomingTxs = filtered.filter((t) => t.type === "subscription" || t.type === "session" || t.type === "sale");
   const outgoingTxs = filtered.filter((t) => t.type === "expense" || t.type === "inventory");
 
   if (loading) {
@@ -220,10 +223,14 @@ export default function TreasuryPage() {
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
-            <p className="text-xs text-gray-500 font-bold mb-1">اشتراكات الأعضاء</p>
+            <p className="text-xs text-gray-500 font-bold mb-1">اشتراكات شهرية</p>
             <p className="text-lg font-black text-green-700">{totals.subscription.toLocaleString()} جنيه</p>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
+            <p className="text-xs text-gray-500 font-bold mb-1">حصص فردية</p>
+            <p className="text-lg font-black text-blue-700">{totals.session.toLocaleString()} جنيه</p>
           </div>
           <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
             <p className="text-xs text-gray-500 font-bold mb-1">المبيعات</p>

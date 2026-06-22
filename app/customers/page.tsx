@@ -12,9 +12,11 @@ const STATUS_STYLES: Record<string, string> = {
   active:   "bg-green-150 text-green-700 border-green-200",
   expiring: "bg-orange-150 text-orange-700 border-orange-200",
   expired:  "bg-red-150 text-red-700 border-red-200",
+  session:  "bg-blue-150 text-blue-700 border-blue-200",
 };
 
 function statusLabel(c: Customer): string {
+  if (c.subscriptionType === "session" || c.status === "session") return "حصة";
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const end = new Date(c.endDate); end.setHours(0, 0, 0, 0);
   const diff = Math.ceil((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
@@ -186,7 +188,7 @@ function CustomersContent() {
   async function confirmRenew(startDate: string, durationDays: number, price: number) {
     if (!renewTarget) return;
     const endDate = calculateEndDate(startDate, durationDays);
-    const status = calculateStatus(endDate);
+    const status = calculateStatus(endDate, "monthly");
     await renewCustomer(
       renewTarget.id,
       { startDate, endDate, durationDays, price, status },
@@ -204,7 +206,7 @@ function CustomersContent() {
 
   const afterUrlFilter = customers.filter((c) => {
     const liveStatus = calculateStatus(c.endDate, c.subscriptionType);
-    if (urlFilter === "active")   return liveStatus === "active" || liveStatus === "expiring";
+    if (urlFilter === "active")   return liveStatus === "active" || liveStatus === "expiring" || liveStatus === "session";
     if (urlFilter === "expiring") return liveStatus === "expiring";
     if (urlFilter === "expired")  return liveStatus === "expired";
     if (urlFilter === "new")      return c.startDate >= monthStart;
@@ -324,14 +326,23 @@ function CustomersContent() {
 
                     {/* Details section */}
                     <div className="grid grid-cols-2 gap-3 text-xs bg-gray-50/50 rounded-xl p-3 border border-gray-100">
-                      <div>
-                        <span className="text-gray-400 font-bold block mb-0.5">تاريخ البدء</span>
-                        <span className="text-gray-700 font-black">{c.startDate}</span>
-                      </div>
-                      <div>
-                        <span className="text-gray-400 font-bold block mb-0.5">تاريخ الانتهاء</span>
-                        <span className="text-gray-700 font-black">{c.endDate}</span>
-                      </div>
+                      {c.subscriptionType === "session" || c.status === "session" ? (
+                        <div className="col-span-2">
+                          <span className="text-gray-400 font-bold block mb-0.5">تاريخ التسجيل</span>
+                          <span className="text-gray-700 font-black">{c.startDate || "—"}</span>
+                        </div>
+                      ) : (
+                        <>
+                          <div>
+                            <span className="text-gray-400 font-bold block mb-0.5">تاريخ البدء</span>
+                            <span className="text-gray-700 font-black">{c.startDate}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-400 font-bold block mb-0.5">تاريخ الانتهاء</span>
+                            <span className="text-gray-700 font-black">{c.endDate}</span>
+                          </div>
+                        </>
+                      )}
                       <div className="col-span-2 pt-1.5 border-t border-gray-100">
                         <span className="text-gray-400 font-bold">قيمة الاشتراك: </span>
                         <span className="text-gray-800 font-black text-sm">{c.price.toLocaleString()} جنيه</span>
@@ -352,12 +363,14 @@ function CustomersContent() {
                         واتساب
                       </a>
 
-                      <button
-                        onClick={() => setRenewTarget(c)}
-                        className="flex-1 py-3 rounded-xl bg-blue-50 text-blue-700 font-bold text-xs flex items-center justify-center gap-1 border border-blue-100 active:scale-95 transition"
-                      >
-                        تجديد
-                      </button>
+                      {c.subscriptionType !== "session" && c.status !== "session" && (
+                        <button
+                          onClick={() => setRenewTarget(c)}
+                          className="flex-1 py-3 rounded-xl bg-blue-50 text-blue-700 font-bold text-xs flex items-center justify-center gap-1 border border-blue-100 active:scale-95 transition"
+                        >
+                          تجديد
+                        </button>
+                      )}
 
                       <Link
                         href={`/customers/${c.id}/edit`}
@@ -403,12 +416,13 @@ function CustomersContent() {
                     {filtered.map((c) => {
                       const waLink = `https://wa.me/2${c.phone}?text=${encodeURIComponent(waMessage(c))}`;
                       const liveStatus = calculateStatus(c.endDate, c.subscriptionType);
+                      const isSession = c.subscriptionType === "session" || c.status === "session";
                       return (
                         <tr key={c.id} className="hover:bg-gray-50/50 transition">
                           <td className="px-5 py-4 font-bold text-gray-900">{c.name}</td>
                           <td className="px-5 py-4 text-gray-600 font-semibold">{c.phone}</td>
-                          <td className="px-5 py-4 text-gray-600 font-semibold">{c.startDate}</td>
-                          <td className="px-5 py-4 text-gray-600 font-semibold">{c.endDate}</td>
+                          <td className="px-5 py-4 text-gray-600 font-semibold">{c.startDate || "—"}</td>
+                          <td className="px-5 py-4 text-gray-600 font-semibold">{isSession ? "—" : c.endDate}</td>
                           <td className="px-5 py-4 text-gray-700 font-bold">{c.price.toLocaleString()} جنيه</td>
                           <td className="px-5 py-4">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${STATUS_STYLES[liveStatus]}`}>
@@ -428,15 +442,17 @@ function CustomersContent() {
                                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                                 </svg>
                               </a>
-                              <button
-                                onClick={() => setRenewTarget(c)}
-                                className="p-1.5 rounded-lg text-green-700 hover:bg-green-50 transition"
-                                title="تجديد الاشتراك"
-                              >
-                                <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                              </button>
+                              {!isSession && (
+                                <button
+                                  onClick={() => setRenewTarget(c)}
+                                  className="p-1.5 rounded-lg text-green-700 hover:bg-green-50 transition"
+                                  title="تجديد الاشتراك"
+                                >
+                                  <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                  </svg>
+                                </button>
+                              )}
                               <Link
                                 href={`/customers/${c.id}/edit`}
                                 className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 transition"
