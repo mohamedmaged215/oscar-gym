@@ -59,7 +59,7 @@ export default function EditCustomerPage({
     if (subscriptionType === "session") {
       await updateCustomer(id, {
         name: form.name.trim(),
-        phone: form.phone.trim(),
+        phone: "",
         price: Number(form.price),
         subscriptionType: "session",
         status: "session",
@@ -154,16 +154,18 @@ export default function EditCustomerPage({
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-1.5">الهاتف</label>
-              <input
-                required
-                type="tel"
-                value={form.phone}
-                onChange={(e) => set("phone", e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition shadow-sm"
-              />
-            </div>
+            {subscriptionType === "monthly" && (
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-1.5">الهاتف</label>
+                <input
+                  required
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => set("phone", e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-300 bg-white text-gray-900 placeholder-gray-400 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition shadow-sm"
+                />
+              </div>
+            )}
 
             {subscriptionType === "monthly" && (
               <>
